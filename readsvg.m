@@ -1,39 +1,149 @@
+% M = moveto
+% L = lineto
+% H = horizontal lineto
+% V = vertical lineto
+% C = curveto
+% S = smooth curveto
+% Q = quadratic Bézier curve
+% T = smooth quadratic Bézier curveto
+% A = elliptical Arc
+% Z = closepath
+
 function [data]=readsvg(filename)
     if (~exist('filename', 'var'))
-        filename = 'Projekt/svg/dreieck.svg';
+        filename = 'svg/327741-future-technology/svg/gamepad.svg';
     end
-    fid = fopen(filename);
     data=struct();
-    tline = fgetl(fid);
-    while ischar(tline)
-        tline = strtrim(tline);
-        tag = regexpi(tline, '<(svg|path) ', 'match');
+    svg = fileread(filename);
+    svg = regexprep(svg, '(\n|\r|\t)', '');
+    svg = regexprep(svg, ' +', ' ');
+    svg = regexprep(svg, '>[ ]+<', '><');
+    svg = strsplit(svg, '><');
+
+    data_count = 1;
+    data.path=[,];
+    data.path{data_count}{1}=[];
+    data.path{data_count}{2}=[];
+    last=[0,0];
+    start=[0,0];
+
+    for i=1:numel(svg)
+        tag = regexpi(svg{i}, '(svg|path) ', 'match');
         if ~isempty(tag)
             switch tag{1}
-                case '<svg '
+                case 'svg '
                     disp('- svg');
-%                    disp(tline);
-                    data.height = regexpi(tline, 'height="\d+', 'match');
+                    data.height = regexpi(svg{i}, 'height="\d+', 'match');
                     data.height = str2double(extractAfter(data.height, 'height="'));
-                    data.width = regexpi(tline, 'width="\d+', 'match');
+                    data.width = regexpi(svg{i}, 'width="\d+', 'match');
                     data.width = str2double(extractAfter(data.width, 'width="'));
-                case '<path '
+                case 'path '
                     disp('- path');
-                    disp(tline);
-                    disp( extractBefore(extractAfter(tline, 'd="'), '"') );
+                    d = extractBefore(extractAfter(svg{i}, 'd="'), '"');
+                    d = regexpi(d, '(?<tag>[a-zA-Z]{1})(?<data>[^a-zA-Z]{0,})', 'tokens');
+                    for j=1:numel(d)
+%                          disp(['tag:', d{j}{1}, ', data:', d{j}{2}]);
+                        switch upper(d{j}{1})
+                            case 'M'  % move
+                                new = regexpi(d{j}{2}, '[,| ]', 'split');
+%                                 disp([d{j}{1}, ': ', d{j}{2}, ' -> ', new{1}, ' : ', new{2}]);
+                                new{1} = str2double(new{1});
+                                new{2} = str2double(new{2});
+                                if isstrprop(d{j}{1}, 'lower')
+                                     new{1} = last{1} + new{1};
+                                     new{2} = last{2} + new{2};
+                                end
+                                data_count = data_count + 1;
+                                data.path{data_count}{1}=[];
+                                data.path{data_count}{2}=[];
+                                start = new;
+                                last = new;
+                                data.path{data_count}{1}=[data.path{data_count}{1}, new{1}];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, new{2}];
+                            case 'L'  % line
+                                new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
+%                                 disp([d{j}{1}, d{j}{2}, new]);
+                                new{1} = str2double(new{1});
+                                new{2} = str2double(new{2});
+                                if isstrprop(d{j}{1}, 'lower')
+                                     new{1} = last{1} + new{1};
+                                     new{2} = last{2} + new{2};
+                                end
+                                last = new;
+                                data.path{data_count}{1}=[data.path{data_count}{1}, new{1}];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, new{2}];
+                            case 'V'  % vertical line
+                                new = str2double(d{j}{2});
+%                                 disp([d{j}{1}, d{j}{2}, new]);
+                                if isstrprop(d{j}{1}, 'lower')
+                                     new = last{2} + new;
+                                end
+                                last{2} = new;
+                                data.path{data_count}{1}=[data.path{data_count}{1}, last{1}];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, new];
+                            case 'H'  % horizontal line
+%                                 disp([d{j}{1}, d{j}{2}, new]);
+                                new = str2double(d{j}{2});
+                                if isstrprop(d{j}{1}, 'lower')
+                                     new = last{1} + new;
+                                end
+                                last{1} = new;
+                                data.path{data_count}{1}=[data.path{data_count}{1}, new];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, last{2}];
+                            case 'C'  % curve
+                                new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
+%                                 disp([d{j}{1}, d{j}{2}, new]);
+                                new{5} = str2double(new{5});
+                                new{6} = str2double(new{6});
+                                if isstrprop(d{j}{1}, 'lower')
+                                     new{5} = last{1} + new{5};
+                                     new{6} = last{2} + new{6};
+                                end
+                                last{1} = new{5};
+                                last{2} = new{6};
+                                data.path{data_count}{1}=[data.path{data_count}{1}, new{5}];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, new{6}];
+                            case 'S'  % spline
+                                new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
+%                                 disp([d{j}{1}, d{j}{2}, new]);
+                                new{numel(new)-1} = str2double(new{numel(new)-1});
+                                new{numel(new)} = str2double(new{numel(new)});
+                                if isstrprop(d{j}{1}, 'lower')
+                                     new{numel(new)-1} = last{1} + new{numel(new)-1};
+                                     new{numel(new)} = last{2} + new{numel(new)};
+                                end
+                                last{1} = new{numel(new)-1};
+                                last{2} = new{numel(new)};
+                                data.path{data_count}{1}=[data.path{data_count}{1}, new{numel(new)-1}];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, new{numel(new)}];
+                            case 'Z'  % close path
+%                                 disp('Z');
+                                data.path{data_count}{1}=[data.path{data_count}{1}, start{1}];
+                                data.path{data_count}{2}=[data.path{data_count}{2}, start{2}];
+                            otherwise  % unknown tag
+                                if isstrprop(d{j}{1}, 'upper')
+                                    disp([d{j}{1}, ' upper'])
+                                else
+                                    disp([d{j}{1}, ' lower'])
+                                end
+                        end
+                    end % for j (alle path Elemente)
                 otherwise
-                    disp(['unbekanntes Tag: ', tag{1}]);
-                    disp(tline);
+                    if tag{1,1}=='/'
+                        disp('closing tag');
+                    else
+                        disp(['unbekanntes Tag: ', tag{1}]);
+                        disp(svg{i});
+                    end
             end
         end
-
-        tline = fgetl(fid);
     end
-    
-    x = [160, 75, 125, 160];
-    y = [20, 90, 160, 20];
-    p=plot(x, y);
-    xlim([0,200]); xticks([]);
-    ylim([0,200]); yticks([]);
-    fclose(fid);    
+
+%    close all;
+    hold off;
+    for i=1:data_count
+        plot(data.path{i}{1}, -1 .* data.path{i}{2});
+    hold on;
+    end
+    hold off;
 end
