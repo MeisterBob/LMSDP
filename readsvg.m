@@ -1,17 +1,6 @@
-% M = moveto
-% L = lineto
-% H = horizontal lineto
-% V = vertical lineto
-% C = curveto
-% S = smooth curveto
-% Q = quadratic Bézier curve
-% T = smooth quadratic Bézier curveto
-% A = elliptical Arc
-% Z = closepath
-
 function [data]=readsvg(filename)
     if (~exist('filename', 'var'))
-        filename = 'svg/327741-future-technology/svg/gamepad.svg';
+        filename = 'svg/182316-education/svg/blackboard.svg';
     end
     data=struct();
     svg = fileread(filename);
@@ -32,13 +21,13 @@ function [data]=readsvg(filename)
         if ~isempty(tag)
             switch tag{1}
                 case 'svg '
-                    disp('- svg');
+%                     disp('- svg');
                     data.height = regexpi(svg{i}, 'height="\d+', 'match');
                     data.height = str2double(extractAfter(data.height, 'height="'));
                     data.width = regexpi(svg{i}, 'width="\d+', 'match');
                     data.width = str2double(extractAfter(data.width, 'width="'));
                 case 'path '
-                    disp('- path');
+%                     disp('- path');
                     d = extractBefore(extractAfter(svg{i}, 'd="'), '"');
                     d = regexpi(d, '(?<tag>[a-zA-Z]{1})(?<data>[^a-zA-Z]{0,})', 'tokens');
                     for j=1:numel(d)
@@ -104,16 +93,30 @@ function [data]=readsvg(filename)
                                 data.path{data_count}{1}=[data.path{data_count}{1}, new{5}];
                                 data.path{data_count}{2}=[data.path{data_count}{2}, new{6}];
                             case 'S'  % spline
+                                t = linspace(0,1,10);
+                                
                                 new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
-%                                 disp([d{j}{1}, d{j}{2}, new]);
+                                disp([d{j}{1}, new]);
+                                new{1} = str2double(new{1});
+                                new{2} = str2double(new{2});
                                 new{numel(new)-1} = str2double(new{numel(new)-1});
                                 new{numel(new)} = str2double(new{numel(new)});
                                 if isstrprop(d{j}{1}, 'lower')
                                      new{numel(new)-1} = last{1} + new{numel(new)-1};
                                      new{numel(new)} = last{2} + new{numel(new)};
                                 end
+                                
+                                pts = kron((1-t).^2,  [last{1};last{2}]) + ...
+                                      kron(2*(1-t).*t,[new{1};new{2}]) + ...
+                                      kron(t.^2,      [new{3};new{4}]);
                                 last{1} = new{numel(new)-1};
                                 last{2} = new{numel(new)};
+                                
+%                                 for k=1:2:20
+%                                     data.path{data_count}{1}=pts(k);
+%                                     data.path{data_count}{2}=pts(k+1);
+%                                     data_count = data_count + 1;
+%                                 end
                                 data.path{data_count}{1}=[data.path{data_count}{1}, new{numel(new)-1}];
                                 data.path{data_count}{2}=[data.path{data_count}{2}, new{numel(new)}];
                             case 'Z'  % close path
@@ -145,5 +148,6 @@ function [data]=readsvg(filename)
         plot(data.path{i}{1}, -1 .* data.path{i}{2});
     hold on;
     end
+    axis equal;
     hold off;
 end
