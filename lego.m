@@ -1,35 +1,70 @@
-%% Lego Projekt Start Funktion
-function lego()
-    % Alte Verbindungen schlieﬂen
-    close all
-    COM_CloseNXT('all');
-    % Erstellung des Hauptfensters
-%    handle.fig = figure('Units', 'pixel', 'Position', [1100 600 300 200], 'Name', 'Aufgabe 2', 'MenuBar', 'none', 'ToolBar', 'none');
-    % Kontrollelemente
-%    uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[25 150 90 15],'String','Motorspannung');
-%    handle.slider = uicontrol('Style', 'slider','Min',0,'Max',100,'Value',50,'Units','pixel','Position', [115 150 150 15]);
-%    uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[25 130 90 15],'String','Position');
-%    uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[25 110 90 15],'String','Drehzahl');
-%    handle.positionA = uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[115 130 30 15],'String','0');
-%    handle.drehzahlA = uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[115 110 30 15],'String','0');
-%    handle.positionC = uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[145 130 30 15],'String','0');
-%    handle.drehzahlC = uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[145 110 30 15],'String','0');
-%    uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[25 90 90 15],'String','Entfernung');
-%    handle.entfernung = uicontrol('Parent',handle.fig,'Style','text','Units','pixel','Position',[115 90 30 15],'String','0');
-%    handle.button = uicontrol('Style','pushbutton','Units','pixel','Position',[120 60 75 20],'Parent',handle.fig,'Callback',@button_callback,'String','Start');
+% close all
+warning('off', 'all');
 
-    disp('Verbinde zu NXT...');
-    COM_SetDefaultNXT(COM_OpenNXT('bluetooth.ini'));
-    
-    % Sichern der Handle
-%    guidata(handle.fig, handle);
-    
-    motorB = NXTMotor(MOTOR_B);
-    motorB.Power = 100;
-    motorB.SpeedRegulation = true;
-    motorB.TachoLimit = 360;
-    motorB.ActionAtTachoLimit = 'Brake';
-    motorB.SmoothStart = true;
-    motorB.SendToNXT();
+%% Maschinenparameter
+machine = struct();
+machine.E0      = struct('x', 0, 'y', 0, 'z', 0);       % Effektor Position
+machine.theta   = struct('a', 0, 'b', 0, 'c', 0);       % Motorwinkel
+machine.f       = 500;                                  % Kantenl‰nge Motorplattform in mm
+machine.e       = 140;                                  % Kantenl‰nge Effektor in mm
+machine.rf      = 168;                                  % Oberarml‰nge in mm
+machine.re      = 264;                                  % Unterarml‰nge in mm
 
+machine.fr      = machine.f/2*tan(pi*1/6);              % Motorplattform Radius in mm
+machine.er      = machine.e/2*tan(pi*1/6);              % Effektor Radius in mm
+
+machine.angle   = struct();
+machine.angle.a = 0;
+machine.angle.b = 0;
+machine.angle.c = 0;
+
+%% Verbindung zum NXT
+COM_CloseNXT('all');
+disp('Verbinde zu NXT...');
+NXT = COM_OpenNXTEx('Any', '0016531B83BC', 'bluetooth.ini');
+COM_SetDefaultNXT(NXT);
+
+%% Motoren
+% Motor A
+machine.motorA = NXTMotor(MOTOR_A);
+machine.motorA.SmoothStart = false;
+machine.motorA.SpeedRegulation = false;
+machine.motorA.ActionAtTachoLimit = 'Brake';
+% Motor B
+machine.motorB = machine.motorA;
+machine.motorB.Port = MOTOR_B;
+% Motor C
+machine.motorC = machine.motorA;
+machine.motorC.Port = MOTOR_C;
+
+%% SVG einlesen
+% svg = readsvg('svg/182316-education/svg/exam.svg');
+
+%% Inverse Kinematik berechnen
+move(machine);
+
+%% Motor Testlauf
+% testrun(machine, 50, 100, 2);
+
+function testrun(machine, power, distance, n)
+    machine.motorA.Power = power;
+    machine.motorB.Power = machine.motorA.Power; machine.motorC.Power = machine.motorA.Power;
+    machine.motorA.ResetPosition(); machine.motorB.ResetPosition(); machine.motorC.ResetPosition();
+
+    machine.motorA.TachoLimit = distance;
+    machine.motorB.TachoLimit = distance;
+    machine.motorC.TachoLimit = distance;
+
+    for i=1:2*n
+        machine.motorA.SendToNXT();
+        machine.motorB.SendToNXT();
+        machine.motorC.SendToNXT();
+        machine.motorA.WaitFor(); motorB.WaitFor(); motorC.WaitFor();
+        machine.motorA.Power = -1*machine.motorA.Power; machine.motorB.Power = machine.motorA.Power; machine.motorC.Power = machine.motorA.Power;
+    end
+
+    dataA=machine.motorA.ReadFromNXT();
+    dataB=machine.motorB.ReadFromNXT();
+    dataC=machine.motorC.ReadFromNXT();
+    disp([dataA.Position, dataB.Position, dataC.Position]);
 end
