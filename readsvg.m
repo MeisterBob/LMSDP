@@ -9,10 +9,10 @@ function [data]=readsvg(filename)
     svg = regexprep(svg, '>[ ]+<', '><');
     svg = strsplit(svg, '><');
 
-    data_count = 1;
+    data_count = 0;
+%     data.path{data_count}{1}=[];
+%     data.path{data_count}{2}=[];
     data.path=[,];
-    data.path{data_count}{1}=[];
-    data.path{data_count}{2}=[];
     last=[0,0];
     start=[0,0];
 
@@ -94,9 +94,8 @@ function [data]=readsvg(filename)
                                 data.path{data_count}{2}=[data.path{data_count}{2}, new{6}];
                             case 'S'  % spline
                                 t = linspace(0,1,10);
-                                
                                 new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
-                                disp([d{j}{1}, new]);
+%                                 disp([d{j}{1}, new]);
                                 new{1} = str2double(new{1});
                                 new{2} = str2double(new{2});
                                 new{numel(new)-1} = str2double(new{numel(new)-1});
@@ -143,11 +142,11 @@ function [data]=readsvg(filename)
     end
 
 %    close all;
-    hold off;
-    for i=1:data_count
-        plot(data.path{i}{1}, -1 .* data.path{i}{2});
-    hold on;
-    end
-    axis equal;
-    hold off;
+%     hold off;
+%     for i=1:data_count
+%         plot(data.path{i}{1}, -1 .* data.path{i}{2});
+%     hold on;
+%     end
+%     axis equal;
+%     hold off;
 end
