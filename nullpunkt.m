@@ -4,9 +4,9 @@ function nullppunkt(machine)
     joy = jst;
     while joy(5)==0
         joy=jst;
-        machine.motorA.Power = round(30 * joy(1));
-        machine.motorB.Power = round(30 * joy(2));
-        machine.motorC.Power = round(30 * joy(3));
+        machine.motorA.Power = round(machine.Power * joy(1));
+        machine.motorB.Power = round(machine.Power * -joy(2));
+        machine.motorC.Power = round(machine.Power * joy(3));
     
         machine.motorA.SendToNXT();
         machine.motorB.SendToNXT();
