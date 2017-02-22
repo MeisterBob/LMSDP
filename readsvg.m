@@ -15,6 +15,7 @@ function [data]=readsvg(filename)
     data.path=[,];
     last=[0,0];
     start=[0,0];
+    t = linspace(0,1,50);
 
     for i=1:numel(svg)
         tag = regexpi(svg{i}, '(svg|path) ', 'match');
@@ -31,7 +32,7 @@ function [data]=readsvg(filename)
                     d = extractBefore(extractAfter(svg{i}, 'd="'), '"');
                     d = regexpi(d, '(?<tag>[a-zA-Z]{1})(?<data>[^a-zA-Z]{0,})', 'tokens');
                     for j=1:numel(d)
-%                          disp(['tag:', d{j}{1}, ', data:', d{j}{2}]);
+%                         disp(['tag:', d{j}{1}, ', data:', d{j}{2}]);
                         switch upper(d{j}{1})
                             case 'M'  % move
                                 new = regexpi(d{j}{2}, '[,| ]', 'split');
@@ -71,7 +72,7 @@ function [data]=readsvg(filename)
                                 data.path{data_count}{1}=[data.path{data_count}{1}, last{1}];
                                 data.path{data_count}{2}=[data.path{data_count}{2}, new];
                             case 'H'  % horizontal line
-%                                 disp([d{j}{1}, d{j}{2}, new]);
+%                                 disp([d{j}{1}, d{j}{2}]);
                                 new = str2double(d{j}{2});
                                 if isstrprop(d{j}{1}, 'lower')
                                      new = last{1} + new;
@@ -82,52 +83,64 @@ function [data]=readsvg(filename)
                             case 'C'  % curve
                                 new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
 %                                 disp([d{j}{1}, d{j}{2}, new]);
-                                new{5} = str2double(new{5});
-                                new{6} = str2double(new{6});
+                                new = str2double(new);
                                 if isstrprop(d{j}{1}, 'lower')
-                                     new{5} = last{1} + new{5};
-                                     new{6} = last{2} + new{6};
+                                     new(1) = last{1} + new(1);
+                                     new(2) = last{2} + new(2);
+                                     new(3) = last{1} + new(3);
+                                     new(4) = last{2} + new(4);
+                                     new(5) = last{1} + new(5);
+                                     new(6) = last{2} + new(6);
                                 end
-                                last{1} = new{5};
-                                last{2} = new{6};
-                                data.path{data_count}{1}=[data.path{data_count}{1}, new{5}];
-                                data.path{data_count}{2}=[data.path{data_count}{2}, new{6}];
+                                pts = kron((1-t).^3,[last{1};last{2}]) + ...
+                                      kron(3*(1-t).^2.*t,[new(1);new(2)]) + ...
+                                      kron(3*(1-t).*t.^2,[new(3);new(4)]) + ...
+                                      kron(t.^3,[new(5);new(6)]);
+                                last{1} = new(5);
+                                last{2} = new(6);
+                                for k=1:2:100
+                                    data.path{data_count}{1}=[data.path{data_count}{1}, pts(k)];
+                                    data.path{data_count}{2}=[data.path{data_count}{2}, pts(k+1)];
+% plot(data.path{data_count}{1}, -1 .* data.path{data_count}{2}); drawnow; pause(0.2);
+                                end
+%                                 data.path{data_count}{1}=[data.path{data_count}{1}, new{5}];
+%                                 data.path{data_count}{2}=[data.path{data_count}{2}, new{6}];
                             case 'S'  % spline
-                                t = linspace(0,1,10);
                                 new = regexpi(d{j}{2}, '-?\d+\.{0,1}\d{0,3}', 'match');
 %                                 disp([d{j}{1}, new]);
-                                new{1} = str2double(new{1});
-                                new{2} = str2double(new{2});
-                                new{numel(new)-1} = str2double(new{numel(new)-1});
-                                new{numel(new)} = str2double(new{numel(new)});
+                                new = str2double(new);
                                 if isstrprop(d{j}{1}, 'lower')
-                                     new{numel(new)-1} = last{1} + new{numel(new)-1};
-                                     new{numel(new)} = last{2} + new{numel(new)};
+                                     new(1) = last{1} + new(1);
+                                     new(2) = last{2} + new(2);
+                                     new(3) = last{1} + new(3);
+                                     new(4) = last{2} + new(4);
+%                                      new{numel(new)-1} = last{1} + new{numel(new)-1};
+%                                      new{numel(new)} = last{2} + new{numel(new)};
                                 end
                                 
-                                pts = kron((1-t).^2,  [last{1};last{2}]) + ...
-                                      kron(2*(1-t).*t,[new{1};new{2}]) + ...
-                                      kron(t.^2,      [new{3};new{4}]);
-                                last{1} = new{numel(new)-1};
-                                last{2} = new{numel(new)};
+                                pts = kron((1-t).^2,   [last{1};last{2}]) + ...
+                                      kron(2*(1-t).*t, [new(1);new(2)]) + ...
+                                      kron(t.^2,       [new(3);new(4)]);
+                                last{1} = new(numel(new)-1);
+                                last{2} = new(numel(new));
                                 
-%                                 for k=1:2:20
-%                                     data.path{data_count}{1}=pts(k);
-%                                     data.path{data_count}{2}=pts(k+1);
-%                                     data_count = data_count + 1;
-%                                 end
-                                data.path{data_count}{1}=[data.path{data_count}{1}, new{numel(new)-1}];
-                                data.path{data_count}{2}=[data.path{data_count}{2}, new{numel(new)}];
+                                for k=1:2:100
+                                    data.path{data_count}{1}=[data.path{data_count}{1}, pts(k)];
+                                    data.path{data_count}{2}=[data.path{data_count}{2}, pts(k+1)];
+% plot(data.path{data_count}{1}, -1 .* data.path{data_count}{2}); drawnow;
+                                end
+%                                 data.path{data_count}{1}=[data.path{data_count}{1}, new{numel(new)-1}];
+%                                 data.path{data_count}{2}=[data.path{data_count}{2}, new{numel(new)}];
                             case 'Z'  % close path
 %                                 disp('Z');
                                 data.path{data_count}{1}=[data.path{data_count}{1}, start{1}];
                                 data.path{data_count}{2}=[data.path{data_count}{2}, start{2}];
                             otherwise  % unknown tag
-                                if isstrprop(d{j}{1}, 'upper')
-                                    disp([d{j}{1}, ' upper'])
-                                else
-                                    disp([d{j}{1}, ' lower'])
-                                end
+%                                 if isstrprop(d{j}{1}, 'upper')
+%                                     disp([d{j}{1}, ' upper'])
+%                                 else
+%                                     disp([d{j}{1}, ' lower'])
+%                                 end
                         end
                     end % for j (alle path Elemente)
                 otherwise
@@ -141,12 +154,12 @@ function [data]=readsvg(filename)
         end
     end
 
-%    close all;
-%     hold off;
-%     for i=1:data_count
-%         plot(data.path{i}{1}, -1 .* data.path{i}{2});
-%     hold on;
-%     end
-%     axis equal;
-%     hold off;
+%     close all;
+    hold off;
+    for i=1:data_count
+        plot(data.path{i}{1}, -1 .* data.path{i}{2});
+    hold on;
+    end
+    axis equal;
+    hold off;
 end
