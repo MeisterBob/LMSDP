@@ -3,6 +3,10 @@ function [data]=readsvg(filename)
         filename = 'svg/182316-education/svg/blackboard.svg';
     end
     data=struct();
+    data.minX=0;
+    data.maxX=0;
+    data.minY=0;
+    data.maxY=0;
     svg = fileread(filename);
     svg = regexprep(svg, '(\n|\r|\t)', '');
     svg = regexprep(svg, ' +', ' ');
@@ -158,8 +162,14 @@ function [data]=readsvg(filename)
     hold off;
     for i=1:data_count
         plot(data.path{i}{1}, -1 .* data.path{i}{2});
+        data.minX = min([data.minX, min(data.path{i}{1})]);
+        data.maxX = max([data.maxX, max(data.path{i}{1})]);
+        data.minY = min([data.minY, min(data.path{i}{2})]);
+        data.maxY = max([data.maxY, max(data.path{i}{2})]);
     hold on;
     end
     axis equal;
+    xticks=[];
+    yticks=[];
     hold off;
 end
