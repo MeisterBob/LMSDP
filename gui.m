@@ -23,15 +23,16 @@ function gui
     handle.popup_group.String = {'111564-university', '182316-education', '327741-future-technology', '333190-valentines-day'};
     handle.popup_pic   = uicontrol('Style','popup','Callback',@popup_pic_callback,'String','Grafik auswählen','Position',[30 320 180 20],'Units','pixel','Parent',handle.fig);
 
-    uicontrol('String','Stift unten Position: ','Style','text','Units','pixel','Parent',handle.fig,'Position',[230 350 100 15]);
-    handle.pendown_text = uicontrol('String',0,'Style','text','Units','pixel','Parent',handle.fig,'Position',[330 350 25 15]);
-    handle.pendown = uicontrol('Style', 'slider','Min',-280,'Max',-170,'SliderStep',[1/110,5/110],'Units','pixel','Position', [230 320 125 20],'Callback',@pendown_callback);
-    handle.btn = uicontrol('Style','pushbutton','Units','pixel','Position',[395 350 75 20],'Parent',handle.fig,'Callback',@start_callback,'String','Start');
-    handle.btn_nikolaus  = uicontrol('Style','pushbutton','Units','pixel','Position',[395 320 75 20],'Parent',handle.fig,'Callback',@btn_nikolaus_callback,'String','Nikolaus');
-    handle.btn_nullpunkt = uicontrol('Style','pushbutton','Units','pixel','Position',[395 30 75 20],'Parent',handle.fig,'Callback',@btn_nullpunkt_callback,'String','Nullpunkt');
+    uicontrol('String','Stift unten Position: ','Style','text','Units','pixel','Parent',handle.fig,'Position',[230 355 125 15]);
+    handle.pendown = uicontrol('Style', 'slider','Min',-280,'Max',-170,'SliderStep',[1/110,5/110],'Units','pixel','Position', [230 335 125 20],'Callback',@pendown_callback);
+    handle.pendown_text = uicontrol('String',0,'Style','text','Units','pixel','Parent',handle.fig,'Position',[230 320 125 15]);
 
-    uicontrol('String','Batteriespannung: ','Style','text','Units','pixel','Parent',handle.fig,'Position',[395 350 100 15]);
-    handle.pendown_text = uicontrol('String',0,'Style','text','Units','pixel','Parent',handle.fig,'Position',[330 350 25 15]);
+    handle.btn = uicontrol('Style','pushbutton','Units','pixel','Position',[395 350 100 20],'Parent',handle.fig,'Callback',@start_callback,'String','Start');
+    handle.btn_nikolaus  = uicontrol('Style','pushbutton','Units','pixel','Position',[395 320 100 20],'Parent',handle.fig,'Callback',@btn_nikolaus_callback,'String','Nikolaus');
+    handle.btn_nullpunkt = uicontrol('Style','pushbutton','Units','pixel','Position',[395 30 100 20],'Parent',handle.fig,'Callback',@btn_nullpunkt_callback,'String','Nullpunkt');
+
+    handle.btn_batterie = uicontrol('Style','pushbutton','Units','pixel','Position',[395 80 100 20],'Parent',handle.fig,'Callback',@btn_batterie_callback,'String','Batteriespannung');
+    handle.batterie_text = uicontrol('String',0,'Style','text','Units','pixel','Parent',handle.fig,'Position',[395 65 100 15]);
 
 %     handle.status = uicontrol('String','0','Style','text','Position',[115 130 30 15],'Units','pixel','Parent',handle.fig);
 %     voltage = NXT_GetBatteryLevel();
@@ -84,9 +85,12 @@ function gui
 
     %% Sichern des Handles
     guidata(handle.fig, handle);
+
+    %% Init Funktionen
     popup_group_callback(handle.popup_group, 'init');
     handle.popup_pic.Value = 16;
     popup_pic_callback(handle.popup_pic, 'init');
+    btn_batterie_callback(handle.btn_batterie, 'init');
 end
 
 %% Popup Group Callback
@@ -177,6 +181,12 @@ end
 function btn_nullpunkt_callback(hObject, event)
     % Motor von Hand zum Nullpunkt fahren und Motorpositionen auf 0 setzten
     nullpunkt(hObject);
+end
+
+%% Button Batterie Callback
+function btn_batterie_callback(hObject, event)
+    handle = guidata(hObject);
+    handle.batterie_text.String = [num2str(NXT_GetBatteryLevel()/1000), 'V'];
 end
 
 %% Button pendown slider Callback

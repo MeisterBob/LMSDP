@@ -11,6 +11,7 @@ function [a,b,c]=inverseKin(machine, x0, y0, z0)
      end
      if (status ~= 0)
          disp('da kann ich nicht hin');
+         disp([x0, y0, z0]);
          a = 0; b = 0; c = 0;
      end
 end

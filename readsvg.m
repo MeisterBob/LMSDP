@@ -19,7 +19,8 @@ function [data]=readsvg(filename)
     data.path=[,];
     last=[0,0];
     start=[0,0];
-    t = linspace(0,1,50);
+    kurvenpunkte = 5;
+    t = linspace(0,1,kurvenpunkte);
 
     for i=1:numel(svg)
         tag = regexpi(svg{i}, '(svg|path) ', 'match');
@@ -102,7 +103,7 @@ function [data]=readsvg(filename)
                                       kron(t.^3,[new(5);new(6)]);
                                 last{1} = new(5);
                                 last{2} = new(6);
-                                for k=1:2:100
+                                for k=1:2:kurvenpunkte
                                     data.path{data_count}{1}=[data.path{data_count}{1}, pts(k)];
                                     data.path{data_count}{2}=[data.path{data_count}{2}, pts(k+1)];
 % plot(data.path{data_count}{1}, -1 .* data.path{data_count}{2}); drawnow; pause(0.2);
@@ -128,7 +129,7 @@ function [data]=readsvg(filename)
                                 last{1} = new(numel(new)-1);
                                 last{2} = new(numel(new));
                                 
-                                for k=1:2:100
+                                for k=1:2:kurvenpunkte
                                     data.path{data_count}{1}=[data.path{data_count}{1}, pts(k)];
                                     data.path{data_count}{2}=[data.path{data_count}{2}, pts(k+1)];
 % plot(data.path{data_count}{1}, -1 .* data.path{data_count}{2}); drawnow;
